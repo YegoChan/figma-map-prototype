@@ -28,7 +28,7 @@
     <script>
         console.log('스크립트 시작');
         
-        // 제보 데이터 - 충남대학교 중심(36.3684, 127.3448) 근처에 분산 배치
+        // 제보 데이터 - 충남대학교 캠퍼스 내부에만 배치 (중심 기준 ±0.002도 이내)
         const reports = [
             {
                 id: '1',
@@ -36,8 +36,8 @@
                 location: '공과대학 1층',
                 likes: 67,
                 commentCount: 2,
-                lat: 36.3700,
-                lng: 127.3480,
+                lat: 36.3694,
+                lng: 127.3458,
                 status: 'resolved'
             },
             {
@@ -46,8 +46,8 @@
                 location: '중앙도서관 3층',
                 likes: 89,
                 commentCount: 1,
-                lat: 36.3705,
-                lng: 127.3445,
+                lat: 36.3699,
+                lng: 127.3448,
                 status: 'in_progress'
             },
             {
@@ -56,8 +56,8 @@
                 location: '학생회관 2층 식당',
                 likes: 52,
                 commentCount: 0,
-                lat: 36.3670,
-                lng: 127.3430,
+                lat: 36.3674,
+                lng: 127.3438,
                 status: 'received'
             },
             {
@@ -66,8 +66,8 @@
                 location: '정심화관',
                 likes: 45,
                 commentCount: 1,
-                lat: 36.3695,
-                lng: 127.3425,
+                lat: 36.3689,
+                lng: 127.3433,
                 status: 'resolved'
             },
             {
@@ -76,8 +76,8 @@
                 location: '자연대 305호',
                 likes: 28,
                 commentCount: 0,
-                lat: 36.3675,
-                lng: 127.3465,
+                lat: 36.3679,
+                lng: 127.3453,
                 status: 'inconvenient'
             },
             {
@@ -86,8 +86,8 @@
                 location: '기숙사 3동',
                 likes: 73,
                 commentCount: 1,
-                lat: 36.3710,
-                lng: 127.3490,
+                lat: 36.3701,
+                lng: 127.3463,
                 status: 'in_progress'
             },
             {
@@ -96,8 +96,8 @@
                 location: '생활과학대 4층',
                 likes: 36,
                 commentCount: 1,
-                lat: 36.3680,
-                lng: 127.3455,
+                lat: 36.3684,
+                lng: 127.3458,
                 status: 'resolved'
             },
             {
@@ -170,11 +170,11 @@
             
             const options = {
                 center: cnuCenter,
-                level: 4  // 충남대 전체가 보이는 적절한 줌 레벨
+                level: 3  // 캠퍼스 전체가 잘 보이는 줌 레벨 (3이 적절)
             };
             
             const map = new kakao.maps.Map(container, options);
-            console.log('지도 생성 완료 - 충남대 중심으로 설정');
+            console.log('지도 생성 완료 - 충남대 중심 (36.3684, 127.3448), 줌 레벨 3');
             
             // 컨트롤 추가
             const mapTypeControl = new kakao.maps.MapTypeControl();
@@ -189,7 +189,7 @@
             reports.forEach((report, index) => {
                 const position = new kakao.maps.LatLng(report.lat, report.lng);
                 
-                console.log(`마커 ${index + 1}: ${report.title} (${report.lat}, ${report.lng})`);
+                console.log(`마커 ${index + 1}: ${report.title} - 위도: ${report.lat}, 경도: ${report.lng}`);
                 
                 const color = getMarkerColor(report.likes);
                 const size = report.likes >= 50 ? 50 : report.likes >= 20 ? 42 : 36;
@@ -207,7 +207,7 @@
                     map: map
                 });
                 
-                console.log(`마커 ${index + 1} 생성 완료`);
+                console.log(`마커 ${index + 1} 생성 완료 - ${color} (공감수: ${report.likes})`);
                 
                 // 인포윈도우 내용
                 const infoContent = `
@@ -246,7 +246,7 @@
             });
             
             console.log('모든 마커 생성 완료, 총', reports.length, '개');
-            console.log('지도 중심 유지됨 - 충남대학교 중심');
+            console.log('충남대학교 캠퍼스 중심으로 고정됨');
         };
     </script>
 </body>
