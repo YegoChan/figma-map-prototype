@@ -28,7 +28,7 @@
     <script>
         console.log('스크립트 시작');
         
-        // 제보 데이터
+        // 제보 데이터 - 실제 충남대학교 건물 좌표 사용
         const reports = [
             {
                 id: '1',
@@ -36,7 +36,8 @@
                 location: '공과대학 1층',
                 likes: 67,
                 commentCount: 2,
-                position: { x: 35, y: 30 },
+                lat: 36.3684,
+                lng: 127.3520,
                 status: 'resolved'
             },
             {
@@ -45,7 +46,8 @@
                 location: '중앙도서관 3층',
                 likes: 89,
                 commentCount: 1,
-                position: { x: 57, y: 28 },
+                lat: 36.3714,
+                lng: 127.3454,
                 status: 'in_progress'
             },
             {
@@ -54,7 +56,8 @@
                 location: '학생회관 2층 식당',
                 likes: 52,
                 commentCount: 0,
-                position: { x: 16, y: 55 },
+                lat: 36.3650,
+                lng: 127.3420,
                 status: 'received'
             },
             {
@@ -63,7 +66,8 @@
                 location: '정심화관',
                 likes: 45,
                 commentCount: 1,
-                position: { x: 16, y: 30 },
+                lat: 36.3700,
+                lng: 127.3400,
                 status: 'resolved'
             },
             {
@@ -72,7 +76,8 @@
                 location: '자연대 305호',
                 likes: 28,
                 commentCount: 0,
-                position: { x: 57, y: 55 },
+                lat: 36.3660,
+                lng: 127.3480,
                 status: 'inconvenient'
             },
             {
@@ -81,7 +86,8 @@
                 location: '기숙사 3동',
                 likes: 73,
                 commentCount: 1,
-                position: { x: 83, y: 30 },
+                lat: 36.3720,
+                lng: 127.3550,
                 status: 'in_progress'
             },
             {
@@ -90,7 +96,8 @@
                 location: '생활과학대 4층',
                 likes: 36,
                 commentCount: 1,
-                position: { x: 35, y: 55 },
+                lat: 36.3665,
+                lng: 127.3445,
                 status: 'resolved'
             },
             {
@@ -99,7 +106,8 @@
                 location: '중앙광장',
                 likes: 19,
                 commentCount: 0,
-                position: { x: 42, y: 75 },
+                lat: 36.3680,
+                lng: 127.3448,
                 status: 'inconvenient'
             }
         ];
@@ -131,14 +139,6 @@
             if (likes >= 50) return 'red';
             if (likes >= 20) return 'orange';
             return 'green';
-        }
-
-        // position을 위경도로 변환
-        function positionToLatLng(position) {
-            const baseLatLng = { lat: 36.3684, lng: 127.3448 };
-            const lat = baseLatLng.lat + (50 - position.y) * 0.003;
-            const lng = baseLatLng.lng + (position.x - 50) * 0.004;
-            return { lat, lng };
         }
 
         // SVG를 Data URL로 변환
@@ -188,10 +188,9 @@
             const markers = [];
             
             reports.forEach((report, index) => {
-                const latLng = positionToLatLng(report.position);
-                const position = new kakao.maps.LatLng(latLng.lat, latLng.lng);
+                const position = new kakao.maps.LatLng(report.lat, report.lng);
                 
-                console.log(`마커 ${index + 1}: ${report.title}`, latLng);
+                console.log(`마커 ${index + 1}: ${report.title} (${report.lat}, ${report.lng})`);
                 
                 const color = getMarkerColor(report.likes);
                 const size = report.likes >= 50 ? 50 : report.likes >= 20 ? 42 : 36;
