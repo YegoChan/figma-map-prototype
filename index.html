@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>충남대학교 캠퍼스 지도</title>
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=46de823e6fff11047613229fe0d8049f"></script>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=46de823e6fff11047613229fe0d8049f&autoload=false"></script>
     <style>
         * {
             margin: 0;
@@ -23,61 +23,11 @@
         .custom-marker {
             position: relative;
             cursor: pointer;
-        }
-        .custom-marker svg {
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
             transition: transform 0.2s;
         }
-        .custom-marker:hover svg {
+        .custom-marker:hover {
             transform: scale(1.2);
-        }
-        .info-window {
-            padding: 12px;
-            min-width: 200px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        .info-title {
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 6px;
-            color: #1a1a1a;
-        }
-        .info-location {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 8px;
-        }
-        .info-stats {
-            display: flex;
-            gap: 12px;
-            font-size: 12px;
-            color: #888;
-        }
-        .info-status {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            margin-top: 4px;
-        }
-        .status-resolved {
-            background: #dcfce7;
-            color: #166534;
-        }
-        .status-in_progress {
-            background: #fef3c7;
-            color: #854d0e;
-        }
-        .status-received {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        .status-inconvenient {
-            background: #fee2e2;
-            color: #991b1b;
+            z-index: 1000;
         }
     </style>
 </head>
@@ -85,7 +35,7 @@
     <div id="map"></div>
 
     <script>
-        // 제보 데이터 (Figma Make의 mockData와 동일)
+        // 제보 데이터
         const reports = [
             {
                 id: '1',
@@ -169,122 +119,127 @@
             'resolved': '해결 완료'
         };
 
-        // 공감수에 따른 색상 결정
+        const statusColors = {
+            'inconvenient': '#fee2e2',
+            'received': '#dbeafe',
+            'in_progress': '#fef3c7',
+            'resolved': '#dcfce7'
+        };
+
+        const statusTextColors = {
+            'inconvenient': '#991b1b',
+            'received': '#1e40af',
+            'in_progress': '#854d0e',
+            'resolved': '#166534'
+        };
+
+        // 공감수에 따른 색상
         function getMarkerColor(likes) {
-            if (likes >= 50) return '#ef4444'; // 빨강
-            if (likes >= 20) return '#f97316'; // 주황
-            return '#22c55e'; // 초록
+            if (likes >= 50) return '#ef4444';
+            if (likes >= 20) return '#f97316';
+            return '#22c55e';
         }
 
-        // 공감수에 따른 크기 결정
+        // 공감수에 따른 크기
         function getMarkerSize(likes) {
-            if (likes >= 50) return 36;
-            if (likes >= 20) return 32;
+            if (likes >= 50) return 40;
+            if (likes >= 20) return 34;
             return 28;
         }
 
-        // position(x,y)를 실제 위경도로 변환
+        // position을 위경도로 변환
         function positionToLatLng(position) {
-            // 충남대학교 캠퍼스 범위 (대략적)
             const baseLatLng = { lat: 36.3684, lng: 127.3448 };
-            
-            // x: 0-100 -> 경도 변환 (서쪽 <-> 동쪽)
-            // y: 0-100 -> 위도 변환 (북쪽 <-> 남쪽, y가 클수록 남쪽)
             const lat = baseLatLng.lat + (50 - position.y) * 0.003;
             const lng = baseLatLng.lng + (position.x - 50) * 0.004;
-            
             return { lat, lng };
         }
 
-        // 커스텀 마커 HTML 생성
-        function createMarkerContent(report) {
-            const color = getMarkerColor(report.likes);
-            const size = getMarkerSize(report.likes);
+        // 카카오맵 API 로드 후 실행
+        kakao.maps.load(function() {
+            console.log('카카오맵 API 로드 완료');
             
-            const div = document.createElement('div');
-            div.className = 'custom-marker';
-            div.style.width = size + 'px';
-            div.style.height = size + 'px';
-            
-            div.innerHTML = `
-                <svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${color}" stroke="white" stroke-width="1.5">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                    <circle cx="12" cy="10" r="3" fill="white"/>
-                </svg>
-            `;
-            
-            return div;
-        }
-
-        // 인포윈도우 컨텐츠 생성
-        function createInfoContent(report) {
-            return `
-                <div class="info-window">
-                    <div class="info-title">${report.title}</div>
-                    <div class="info-location">${report.location}</div>
-                    <div class="info-stats">
-                        <span>❤️ ${report.likes}</span>
-                        <span>💬 ${report.commentCount}</span>
-                    </div>
-                    <div class="info-status status-${report.status}">
-                        ${statusLabels[report.status]}
-                    </div>
-                </div>
-            `;
-        }
-
-        // 지도 초기화
-        window.onload = function() {
             const container = document.getElementById('map');
-            
-            // 충남대학교 중심 좌표
             const cnuCenter = new kakao.maps.LatLng(36.3684, 127.3448);
             
             const options = {
                 center: cnuCenter,
-                level: 4 // 확대 레벨 (숫자가 작을수록 확대)
+                level: 4
             };
             
             const map = new kakao.maps.Map(container, options);
+            console.log('지도 생성 완료');
             
-            // 지도 타입 컨트롤 추가
+            // 컨트롤 추가
             const mapTypeControl = new kakao.maps.MapTypeControl();
             map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
             
-            // 줌 컨트롤 추가
             const zoomControl = new kakao.maps.ZoomControl();
             map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
             
-            // 각 제보에 대한 마커 생성
-            reports.forEach(report => {
+            // 마커 생성
+            console.log('마커 생성 시작, 제보 개수:', reports.length);
+            
+            reports.forEach((report, index) => {
                 const latLng = positionToLatLng(report.position);
                 const position = new kakao.maps.LatLng(latLng.lat, latLng.lng);
                 
+                console.log(`마커 ${index + 1}: ${report.title}`, latLng);
+                
+                const color = getMarkerColor(report.likes);
+                const size = getMarkerSize(report.likes);
+                
+                // 커스텀 마커 HTML
+                const markerContent = document.createElement('div');
+                markerContent.className = 'custom-marker';
+                markerContent.style.cssText = `
+                    width: ${size}px;
+                    height: ${size}px;
+                `;
+                
+                markerContent.innerHTML = `
+                    <svg viewBox="0 0 24 24" width="${size}" height="${size}" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="${color}" stroke="white" stroke-width="2"/>
+                        <circle cx="12" cy="10" r="3" fill="white"/>
+                    </svg>
+                `;
+                
                 // 커스텀 오버레이 생성
-                const markerContent = createMarkerContent(report);
                 const customOverlay = new kakao.maps.CustomOverlay({
                     position: position,
                     content: markerContent,
-                    yAnchor: 1 // 마커의 아래쪽이 위치를 가리키도록
+                    yAnchor: 1
                 });
                 
                 customOverlay.setMap(map);
+                console.log(`마커 ${index + 1} 추가 완료`);
                 
-                // 인포윈도우 생성
+                // 인포윈도우 내용
+                const infoContent = `
+                    <div style="padding: 12px; min-width: 200px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #1a1a1a;">${report.title}</div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 8px;">${report.location}</div>
+                        <div style="display: flex; gap: 12px; font-size: 12px; color: #888; margin-bottom: 6px;">
+                            <span>❤️ ${report.likes}</span>
+                            <span>💬 ${report.commentCount}</span>
+                        </div>
+                        <div style="display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; background: ${statusColors[report.status]}; color: ${statusTextColors[report.status]};">
+                            ${statusLabels[report.status]}
+                        </div>
+                    </div>
+                `;
+                
                 const infowindow = new kakao.maps.InfoWindow({
-                    content: createInfoContent(report),
+                    content: infoContent,
                     removable: false
                 });
                 
-                // 마커 클릭 이벤트
+                // 클릭 이벤트
                 markerContent.addEventListener('click', function() {
-                    // 모든 인포윈도우 닫기
-                    infowindow.close();
-                    // 클릭한 마커의 인포윈도우 열기
                     infowindow.open(map, customOverlay);
                 });
                 
-                // 마커 호버 이벤트
+                // 호버 이벤트
                 markerContent.addEventListener('mouseenter', function() {
                     infowindow.open(map, customOverlay);
                 });
@@ -293,7 +248,9 @@
                     infowindow.close();
                 });
             });
-        };
+            
+            console.log('모든 마커 생성 완료');
+        });
     </script>
 </body>
 </html>
