@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>충남대학교 캠퍼스 지도</title>
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=46de823e6fff11047613229fe0d8049f&autoload=false"></script>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=46de823e6fff11047613229fe0d8049f"></script>
     <style>
         * {
             margin: 0;
@@ -20,21 +20,14 @@
             width: 100%;
             height: 100%;
         }
-        .custom-marker {
-            position: relative;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .custom-marker:hover {
-            transform: scale(1.2);
-            z-index: 1000;
-        }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
     <script>
+        console.log('스크립트 시작');
+        
         // 제보 데이터
         const reports = [
             {
@@ -135,16 +128,9 @@
 
         // 공감수에 따른 색상
         function getMarkerColor(likes) {
-            if (likes >= 50) return '#ef4444';
-            if (likes >= 20) return '#f97316';
-            return '#22c55e';
-        }
-
-        // 공감수에 따른 크기
-        function getMarkerSize(likes) {
-            if (likes >= 50) return 40;
-            if (likes >= 20) return 34;
-            return 28;
+            if (likes >= 50) return 'red';
+            if (likes >= 20) return 'orange';
+            return 'green';
         }
 
         // position을 위경도로 변환
@@ -155,10 +141,29 @@
             return { lat, lng };
         }
 
-        // 카카오맵 API 로드 후 실행
-        kakao.maps.load(function() {
-            console.log('카카오맵 API 로드 완료');
+        // SVG를 Data URL로 변환
+        function createMarkerImage(color, size) {
+            const svgColor = color === 'red' ? '#ef4444' : color === 'orange' ? '#f97316' : '#22c55e';
+            const svg = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="${svgColor}" stroke="white" stroke-width="2"/>
+                    <circle cx="12" cy="10" r="3" fill="white"/>
+                </svg>
+            `;
+            const encoded = encodeURIComponent(svg);
+            return `data:image/svg+xml,${encoded}`;
+        }
+
+        // 지도 생성
+        window.onload = function() {
+            console.log('window.onload 실행');
+            console.log('kakao 객체:', typeof kakao !== 'undefined' ? '있음' : '없음');
             
+            if (typeof kakao === 'undefined' || !kakao.maps) {
+                console.error('카카오맵 API가 로드되지 않았습니다');
+                return;
+            }
+
             const container = document.getElementById('map');
             const cnuCenter = new kakao.maps.LatLng(36.3684, 127.3448);
             
@@ -180,6 +185,8 @@
             // 마커 생성
             console.log('마커 생성 시작, 제보 개수:', reports.length);
             
+            const markers = [];
+            
             reports.forEach((report, index) => {
                 const latLng = positionToLatLng(report.position);
                 const position = new kakao.maps.LatLng(latLng.lat, latLng.lng);
@@ -187,32 +194,23 @@
                 console.log(`마커 ${index + 1}: ${report.title}`, latLng);
                 
                 const color = getMarkerColor(report.likes);
-                const size = getMarkerSize(report.likes);
+                const size = report.likes >= 50 ? 50 : report.likes >= 20 ? 42 : 36;
                 
-                // 커스텀 마커 HTML
-                const markerContent = document.createElement('div');
-                markerContent.className = 'custom-marker';
-                markerContent.style.cssText = `
-                    width: ${size}px;
-                    height: ${size}px;
-                `;
+                // 마커 이미지 생성
+                const imageSrc = createMarkerImage(color, size);
+                const imageSize = new kakao.maps.Size(size, size);
+                const imageOption = { offset: new kakao.maps.Point(size / 2, size) };
+                const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
                 
-                markerContent.innerHTML = `
-                    <svg viewBox="0 0 24 24" width="${size}" height="${size}" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="${color}" stroke="white" stroke-width="2"/>
-                        <circle cx="12" cy="10" r="3" fill="white"/>
-                    </svg>
-                `;
-                
-                // 커스텀 오버레이 생성
-                const customOverlay = new kakao.maps.CustomOverlay({
+                // 마커 생성
+                const marker = new kakao.maps.Marker({
                     position: position,
-                    content: markerContent,
-                    yAnchor: 1
+                    image: markerImage,
+                    map: map
                 });
                 
-                customOverlay.setMap(map);
-                console.log(`마커 ${index + 1} 추가 완료`);
+                markers.push(marker);
+                console.log(`마커 ${index + 1} 생성 완료`);
                 
                 // 인포윈도우 내용
                 const infoContent = `
@@ -235,22 +233,31 @@
                 });
                 
                 // 클릭 이벤트
-                markerContent.addEventListener('click', function() {
-                    infowindow.open(map, customOverlay);
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    infowindow.open(map, marker);
                 });
                 
-                // 호버 이벤트
-                markerContent.addEventListener('mouseenter', function() {
-                    infowindow.open(map, customOverlay);
+                // 마우스오버 이벤트
+                kakao.maps.event.addListener(marker, 'mouseover', function() {
+                    infowindow.open(map, marker);
                 });
                 
-                markerContent.addEventListener('mouseleave', function() {
+                // 마우스아웃 이벤트
+                kakao.maps.event.addListener(marker, 'mouseout', function() {
                     infowindow.close();
                 });
             });
             
-            console.log('모든 마커 생성 완료');
-        });
+            console.log('모든 마커 생성 완료, 총', markers.length, '개');
+            
+            // 마커가 모두 보이도록 지도 범위 재설정
+            const bounds = new kakao.maps.LatLngBounds();
+            markers.forEach(marker => {
+                bounds.extend(marker.getPosition());
+            });
+            map.setBounds(bounds);
+            console.log('지도 범위 재설정 완료');
+        };
     </script>
 </body>
 </html>
