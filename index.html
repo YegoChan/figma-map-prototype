@@ -138,12 +138,12 @@
         function getMarkerColor(likes) {
             if (likes >= 50) return 'red';
             if (likes >= 20) return 'orange';
-            return 'green';
+            return 'yellow';
         }
 
         // SVG를 Data URL로 변환
         function createMarkerImage(color, size) {
-            const svgColor = color === 'red' ? '#ef4444' : color === 'orange' ? '#f97316' : '#22c55e';
+            const svgColor = color === 'red' ? '#ef4444' : color === 'orange' ? '#f97316' : '#eab308';
             const svg = `
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="${svgColor}" stroke="white" stroke-width="2"/>
@@ -251,3 +251,4 @@
     </script>
 </body>
 </html>
+
