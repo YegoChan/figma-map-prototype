@@ -114,6 +114,7 @@
       justify-content: center;
       font-size: 14px;
       color: #666;
+      z-index: 10;
     }
     
     .close-btn:hover {
@@ -129,6 +130,15 @@
     console.log('HTML 로드 완료');
     
     let currentOverlay = null; // 현재 열린 오버레이
+    
+    // 전역 함수로 오버레이 닫기
+    window.closeCurrentOverlay = function() {
+      console.log('❌ 오버레이 닫기');
+      if (currentOverlay) {
+        currentOverlay.setMap(null);
+        currentOverlay = null;
+      }
+    };
     
     function hideLoading() {
       const loadingDiv = document.getElementById('loading');
@@ -200,20 +210,12 @@
         console.log('지도 생성 완료');
         hideLoading();
         
-        // 제보 데이터 (실제로는 React 앱에서 받아와야 함)
+        // 제보 데이터
         const reports = [
           { id: '1', title: '학생회관 식당 문제', location: '학생회관 2층 식당', character: '🦊', likes: 52, lat: 36.3675, lng: 127.3447 },
           { id: '2', title: '도서관 냉난방', location: '중앙도서관', character: '🐻', likes: 35, lat: 36.3680, lng: 127.3450 },
           { id: '3', title: '화장실 청결', location: '공대 5호관', character: '🐰', likes: 15, lat: 36.3670, lng: 127.3440 },
         ];
-        
-        // 오버레이 닫기 함수
-        function closeOverlay() {
-          if (currentOverlay) {
-            currentOverlay.setMap(null);
-            currentOverlay = null;
-          }
-        }
         
         // 마커 생성
         reports.forEach(report => {
@@ -232,12 +234,12 @@
             console.log('🎯 마커 클릭:', report.id);
             
             // 이전 오버레이 닫기
-            closeOverlay();
+            window.closeCurrentOverlay();
             
             // 카드 HTML 생성
             const cardHTML = `
               <div class="marker-card" data-report-id="${report.id}">
-                <button class="close-btn" onclick="event.stopPropagation(); this.closest('.marker-card').parentElement.parentElement.style.display='none';">×</button>
+                <button class="close-btn" onclick="event.stopPropagation(); window.closeCurrentOverlay();">×</button>
                 <div class="card-header">
                   <div class="card-avatar">${report.character}</div>
                   <div style="flex: 1;">
@@ -285,8 +287,8 @@
         console.log('✅ 마커 생성 완료:', reports.length);
         
         // 지도 드래그/줌 시 오버레이 닫기
-        kakao.maps.event.addListener(map, 'dragstart', closeOverlay);
-        kakao.maps.event.addListener(map, 'zoom_changed', closeOverlay);
+        kakao.maps.event.addListener(map, 'dragstart', window.closeCurrentOverlay);
+        kakao.maps.event.addListener(map, 'zoom_changed', window.closeCurrentOverlay);
         
         // 준비 완료 메시지
         window.parent.postMessage({ type: 'mapReady' }, '*');
